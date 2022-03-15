@@ -26,9 +26,8 @@ spotMask = bwareaopen(spotMask, minSpotArea);
 spotMask = imfill(spotMask, 'holes');
 spotMask = imclose(spotMask, [1 1 1; 1 1 1; 1 1 1]);
 
+dd = -bwdist(~spotMask);
+% dd = imhmin(dd, 1);
+LL = watershed(dd);
 
-
-% dd = -bwdist(~spotMask);
-% LL = watershed(dd);
-
-%spotMask(LL == 0) = false;
+spotMask(LL == 0) = false;
