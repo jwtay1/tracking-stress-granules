@@ -1,7 +1,7 @@
 clearvars
 clc
 
-nd2 = ND2reader('20211208_polyIC_.nd2');
+nd2 = ND2reader('D:\Projects\ALMC Tickets\T336-Corbet-SpotDetection\data\20220426_.nd2');
 
 cellTracker = LAPLinker;
 cellTracker.LinkedBy = 'PixelIdxList';
@@ -22,13 +22,13 @@ greenSpotThreshold = 4;
 greenSpotMinSpotArea = 10;
 greenSpotSBR = 3;
 
-vid = VideoWriter('test.avi');
+vid = VideoWriter('D:\Projects\ALMC Tickets\T336-Corbet-SpotDetection\results\2022-05-16 Results.avi');
 vid.FrameRate = 10;
 open(vid)
 
 for iT = 1:nd2.sizeT
 
-    currFrame = zeros(nd2.height, nd2.width, 2);
+    currFrame = zeros(nd2.height, nd2.width, nd2.sizeC);
     for iZ = 1:nd2.sizeZ
         currFrame = max(currFrame, double(getImage(nd2, 1, iT, 1)));
     end

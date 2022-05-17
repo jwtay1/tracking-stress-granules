@@ -1,9 +1,9 @@
 clearvars
 clc
 
-nd2 = ND2reader('20211208_polyIC_.nd2');
+nd2 = ND2reader('D:\Projects\ALMC Tickets\T336-Corbet-SpotDetection\data\20220426_.nd2');
 
-iT = 52;
+iT = 35;
 minSpotSize = 3;
 spotThreshold = 15;
 
