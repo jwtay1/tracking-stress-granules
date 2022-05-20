@@ -43,6 +43,9 @@ vid = VideoWriter(fullfile(outputDir, [outputFN, '.avi']));
 vid.FrameRate = 15;
 open(vid)
 
+%Create a structure to hold data
+frameData = struct;
+
 for iT = 1:nd2.sizeT
 
     %Get the MIP
@@ -58,12 +61,15 @@ for iT = 1:nd2.sizeT
 
     %Get data from red spots
     dataSpot_Red = regionprops(spotMask_Red, mip(:, :, 2), 'Centroid', 'MeanIntensity');
+    dataSpot_Green = regionprops(spotMask_Green, mip(:, :, 3), 'Centroid', 'MeanIntensity');
+
+    %Collect data from current frame
+    frameData(iT).NumRedSpots = numel(dataSpot_Red);
+    frameData(iT).NumGreenSpots = numel(dataSpot_Green);
 
     if ~isempty(dataSpot_Red)
 
         %Measure spot distance to green
-        dataSpot_Green = regionprops(spotMask_Green, mip(:, :, 3), 'Centroid', 'MeanIntensity');
-
         for iSR = 1:numel(dataSpot_Red)
 
             if ~isempty(dataSpot_Green)
@@ -72,6 +78,7 @@ for iT = 1:nd2.sizeT
 
                 dataSpot_Red(iSR).distToGreen = ...
                     sqrt(sum((allPos - dataSpot_Red(iSR).Centroid).^2, 2));
+                
             else
 
                 dataSpot_Red(iSR).distToGreen = [NaN];
@@ -177,9 +184,22 @@ end
 plot(currSpotData.Frames, numGreenWithinRadius)
 xlabel('Frames')
 ylabel('Number of green spots within 200px radius')
-title('Spot #6')
+title('Red spot #6')
 
 
+%%
 
+%Plot number of red and green spots over time
+tt = 1:nd2.sizeT;
 
+figure(2)
+yyaxis left
+plot(tt, [frameData.NumRedSpots])
+ylabel('Number of red spots')
+
+yyaxis right
+plot(tt, [frameData.NumGreenSpots])
+ylabel('Number of green spots')
+xlabel('Frames')
+title('Number of spots in frame')
 
