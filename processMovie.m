@@ -9,9 +9,11 @@ outputDir = 'D:\Projects\ALMC Tickets\T336-Corbet-SpotDetection\results\20220519
 minSpotSize = 3;
 spotThreshold = 15;
 
+%Intensities to normalize images to in movie
 ch2IntRange = [500, 15000];
 ch3IntRange = [500, 15000];
 
+%Cell tracking parameters
 cellTracker = LAPLinker;
 cellTracker.LinkedBy = 'Centroid';
 %cellTracker.LinkCostMetric = 'pxintersect';
@@ -21,6 +23,7 @@ cellTracker.MaxTrackAge = 1;
 %% Process data
 
 nd2 = ND2reader(filename);
+%nd2 = BioformatsImage(filename);
 
 %Setup output filename and directory
 if ~exist(outputDir, 'dir')
@@ -40,7 +43,7 @@ for iT = 1:nd2.sizeT
     mip = calculateMIP(nd2, iT);
 
     %Mask cells
-    cellMask = identifyCells(mip(:, :, 1), 600);
+    cellMask = identifyCells(mip(:, :, 1), 800);
     % showoverlay(mip(:, :, 1), bwperim(cellMask));
 
     %Detect spots in each channel

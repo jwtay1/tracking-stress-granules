@@ -13,6 +13,21 @@ if isa(reader, 'ND2reader')
     for iZ = 1:reader.sizeZ
         mip = max(mip, getImage(reader, 1, iT, 1));
     end
+
+elseif isa(reader, 'BioformatsImage')
+
+    mip = zeros(reader.height, reader.width, reader.sizeC, 'uint16');
+
+    for iZ = 1:reader.sizeZ
+
+        currImage = zeros(reader.height, reader.width, reader.sizeC, 'uint16');
+
+        for iC = 1:reader.sizeC
+            currImage(:, :, iC) = getPlane(reader, iZ, iC, iT);
+        end
+
+        mip = max(mip, currImage);
+    end
 end
 
 end

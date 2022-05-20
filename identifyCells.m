@@ -25,6 +25,6 @@ LL = watershed(dd);
 
 cellMask(LL == 0) = 0;
 
-cellMask = bwareaopen(cellMask, 2000);
+cellMask = bwareaopen(cellMask, 1000);
 
 end
