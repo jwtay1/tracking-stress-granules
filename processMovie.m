@@ -3,7 +3,7 @@ clc
 
 filename = 'D:\Projects\ALMC Tickets\T336-Corbet-SpotDetection\data\20220426_.nd2';
 
-outputDir = 'D:\Projects\ALMC Tickets\T336-Corbet-SpotDetection\results\20220520';
+outputDir = 'D:\Projects\ALMC Tickets\T336-Corbet-SpotDetection\results\20220523';
 
 %Parameters
 minSpotSize = 3;
@@ -25,6 +25,9 @@ spotTracker = LAPLinker;
 spotTracker.LinkedBy = 'Centroid';
 spotTracker.LinkScoreRange = [0 50];
 spotTracker.MaxTrackAge = 4;
+
+%Green spot data
+
 
 %% Process data
 
@@ -66,6 +69,8 @@ for iT = 1:nd2.sizeT
     %Collect data from current frame
     frameData(iT).NumRedSpots = numel(dataSpot_Red);
     frameData(iT).NumGreenSpots = numel(dataSpot_Green);
+    frameData(iT).spotDataGreen = dataSpot_Green;
+    frameData(iT).spotDataRed = dataSpot_Red;
 
     if ~isempty(dataSpot_Red)
 
@@ -202,4 +207,9 @@ plot(tt, [frameData.NumGreenSpots])
 ylabel('Number of green spots')
 xlabel('Frames')
 title('Number of spots in frame')
+
+%% Save data
+
+
+save(fullfile(outputDir, 'trackedData.mat'), 'frameData', 'spotTracker', 'filename')
 
