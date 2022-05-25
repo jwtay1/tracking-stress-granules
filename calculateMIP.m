@@ -1,4 +1,4 @@
-function mip = calculateMIP(reader, iT)
+function mip = calculateMIP(reader, iXY, iT)
 %CALCULATEMIP  Calculate the maximum intensity projection of a z-stack
 %
 %  MIP = CALCULATEMIP(reader, iT) calculates the maximum intensity
@@ -11,7 +11,7 @@ function mip = calculateMIP(reader, iT)
 if isa(reader, 'ND2reader')
     mip = zeros(reader.height, reader.width, reader.sizeC, 'uint16');
     for iZ = 1:reader.sizeZ
-        mip = max(mip, getImage(reader, 1, iT, 1));
+        mip = max(mip, getImage(reader, iZ, iT, iXY));
     end
 
 elseif isa(reader, 'BioformatsImage')

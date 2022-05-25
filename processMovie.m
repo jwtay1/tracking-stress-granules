@@ -1,17 +1,41 @@
 clearvars
 clc
 
-filename = 'D:\Projects\ALMC Tickets\T336-Corbet-SpotDetection\data\20220426_.nd2';
+filename = 'D:\Projects\ALMC Tickets\T336-Corbet-SpotDetection\data\crop\20220311_polyic_xy3.nd2';
 
-outputDir = 'D:\Projects\ALMC Tickets\T336-Corbet-SpotDetection\results\20220523';
+outputDir = 'D:\Projects\ALMC Tickets\T336-Corbet-SpotDetection\results\20220524';
+
+% function processMovie(filename, outputDir, varargin)
+% 
+% ip = inputParser;
+% addParameter(ip, 'redChannel', 2);
+% addParameter(ip, 'redChannelNormRange', [500 7500]);
+% 
+% addParameter(ip, 'greenChannel', 3);
+% addParameter(ip, 'greenChannelNormRange', [3000 23000]);
+% 
+% parse(ip, varargin{:});
+
+iXY = 1;
+
+chRed = 1;
+chGreen = 2;
 
 %Parameters
 minSpotSize = 3;
 spotThreshold = 15;
 
 %Intensities to normalize images to in movie
-ch2IntRange = [500, 15000];
-ch3IntRange = [500, 15000];
+ch2IntRange = [500, 4000];
+ch3IntRange = [1000, 27000];
+
+greenSpotSensitivity = 200;
+redSpotSensitivity = 1200;
+
+frames = 20:38;
+
+%frames = 25;
+
 
 % %Cell tracking parameters
 % cellTracker = LAPLinker;
@@ -25,9 +49,6 @@ spotTracker = LAPLinker;
 spotTracker.LinkedBy = 'Centroid';
 spotTracker.LinkScoreRange = [0 50];
 spotTracker.MaxTrackAge = 4;
-
-%Green spot data
-
 
 %% Process data
 
@@ -49,22 +70,23 @@ open(vid)
 %Create a structure to hold data
 frameData = struct;
 
-for iT = 1:nd2.sizeT
+for iT = frames%1:nd2.sizeT
 
     %Get the MIP
-    mip = calculateMIP(nd2, iT);
+    mip = calculateMIP(nd2, iXY, iT);
 
     %Mask cells
 %     cellMask = identifyCells(mip(:, :, 1), 800);
     % showoverlay(mip(:, :, 1), bwperim(cellMask));
 
     %Detect spots in each channel
-    spotMask_Red = detectSpotsByExtendedMax(mip(:, :, 2), 1200);
-    spotMask_Green = detectSpotsByExtendedMax(mip(:, :, 3), 1500);
+    spotMask_Red = detectSpotsByExtendedMax(mip(:, :, chRed), redSpotSensitivity);
+    spotMask_Green = detectSpotsByExtendedMax(mip(:, :, chGreen), greenSpotSensitivity);
+    %showoverlay(mip(:, :, chGreen), spotMask_Green, 'Opacity', 10)
 
     %Get data from red spots
-    dataSpot_Red = regionprops(spotMask_Red, mip(:, :, 2), 'Centroid', 'MeanIntensity');
-    dataSpot_Green = regionprops(spotMask_Green, mip(:, :, 3), 'Centroid', 'MeanIntensity');
+    dataSpot_Red = regionprops(spotMask_Red, mip(:, :, chRed), 'Centroid', 'MeanIntensity');
+    dataSpot_Green = regionprops(spotMask_Green, mip(:, :, chGreen), 'Centroid', 'MeanIntensity');
 
     %Collect data from current frame
     frameData(iT).NumRedSpots = numel(dataSpot_Red);
@@ -130,9 +152,9 @@ for iT = 1:nd2.sizeT
 
 
     %Generate an image
-    ch2Norm = double(mip(:, :, 2));
+    ch2Norm = double(mip(:, :, chRed));
     ch2Norm = (ch2Norm - (min(ch2IntRange)))/(max(ch2IntRange) - min(ch2IntRange));
-    ch3Norm = double(mip(:, :, 3));
+    ch3Norm = double(mip(:, :, chGreen));
     ch3Norm = (ch3Norm - (min(ch2IntRange)))/(max(ch2IntRange) - min(ch2IntRange));
 
     Ired = ch2Norm;
@@ -174,42 +196,42 @@ close(vid)
 % 
 % plot(track1.Frames, track1.NumRedSpots, 'r-', track1.Frames, track1.NumGreenSpots, 'g-');
 
-%Count number of spots within a 200 px radius
-validRadius = 200;
-currSpot = 6;
-
-currSpotData = getTrack(spotTracker, 6);
-
-for iT = 1:numel(currSpotData.distToGreen)
-
-    numGreenWithinRadius(iT) = numel(currSpotData.distToGreen{iT} <= validRadius);
-
-end
-
-plot(currSpotData.Frames, numGreenWithinRadius)
-xlabel('Frames')
-ylabel('Number of green spots within 200px radius')
-title('Red spot #6')
-
-
-%%
-
-%Plot number of red and green spots over time
-tt = 1:nd2.sizeT;
-
-figure(2)
-yyaxis left
-plot(tt, [frameData.NumRedSpots])
-ylabel('Number of red spots')
-
-yyaxis right
-plot(tt, [frameData.NumGreenSpots])
-ylabel('Number of green spots')
-xlabel('Frames')
-title('Number of spots in frame')
+% %Count number of spots within a 200 px radius
+% validRadius = 200;
+% currSpot = 6;
+% 
+% currSpotData = getTrack(spotTracker, 6);
+% 
+% for iT = 1:numel(currSpotData.distToGreen)
+% 
+%     numGreenWithinRadius(iT) = numel(currSpotData.distToGreen{iT} <= validRadius);
+% 
+% end
+% 
+% plot(currSpotData.Frames, numGreenWithinRadius)
+% xlabel('Frames')
+% ylabel('Number of green spots within 200px radius')
+% title('Red spot #6')
+% 
+% 
+% %%
+% 
+% %Plot number of red and green spots over time
+% tt = 1:nd2.sizeT;
+% 
+% figure(2)
+% yyaxis left
+% plot(tt, [frameData.NumRedSpots])
+% ylabel('Number of red spots')
+% 
+% yyaxis right
+% plot(tt, [frameData.NumGreenSpots])
+% ylabel('Number of green spots')
+% xlabel('Frames')
+% title('Number of spots in frame')
 
 %% Save data
 
 
-save(fullfile(outputDir, 'trackedData.mat'), 'frameData', 'spotTracker', 'filename')
+save(fullfile(outputDir, ['trackedData_', outputFN, '.mat']), 'frameData', 'spotTracker', 'filename')
 
