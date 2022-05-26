@@ -26,5 +26,7 @@ LL = watershed(dd);
 cellMask(LL == 0) = 0;
 
 cellMask = bwareaopen(cellMask, 1000);
+cellMask = imfill(cellMask, 'holes');
+
 
 end
