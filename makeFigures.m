@@ -1,104 +1,60 @@
 clearvars
 clc
 
-load('D:\Projects\ALMC Tickets\T336-Corbet-SpotDetection\results\20220523\trackedData.mat', ...
-    'spotTracker', 'filename', 'frameData');
+%% 20220426_ XY 5
+roi = [154 195 445 643];
+spotID = 1;
+frames = 48:57;
 
-nd2 = ND2reader(filename);
+inputFile = 'D:\Projects\ALMC Tickets\T336-Corbet-SpotDetection\results\20220525\tracks\trackedData_20220426__crop_XY5.mat';
+outputDir = 'D:\Projects\ALMC Tickets\T336-Corbet-SpotDetection\results\20220525\20220426_';
 
-%%
+exportImages(inputFile, outputDir, roi, spotID, frames)
 
-%Figure for spot at edge
-roi = [92 547 376 724];
-spotID = 15;
-frames = [92 97 102 107 112];
+%% trackedData_20220311_polyic_xy3
+roi = [1 126 283 322];
+spotID = 1;
+frames = 20:38;
 
-% %Figure with spot at center
-% roi = [419 90 616 257];
-% spotID = 6;
-% frames = [51 56 61 66 71];
+inputFile = 'D:\Projects\ALMC Tickets\T336-Corbet-SpotDetection\results\20220525\tracks\trackedData_20220311_polyic_xy3.mat';
+outputDir = 'D:\Projects\ALMC Tickets\T336-Corbet-SpotDetection\results\20220525\20220311_polyic_xy3';
 
-currSpotData = getTrack(spotTracker, spotID);
-%%
+exportImages(inputFile, outputDir, roi, spotID, frames, ...
+    'redChannel', 1, 'greenChannel', 2, ...
+    'redChannelNormRange', [400 3500], 'greenChannelNormRange', [200 3000], ...
+    'nearDist', 100)
 
-for iT = frames
+%% trackedData_20220311_polyic_xy6
+roi = [280 708 529 900];
+spotID = 1;
+frames = 115:122;
 
+inputFile = 'D:\Projects\ALMC Tickets\T336-Corbet-SpotDetection\results\20220525\tracks\trackedData_20220311_polyic_xy6.mat';
+outputDir = 'D:\Projects\ALMC Tickets\T336-Corbet-SpotDetection\results\20220525\20220311_polyic_xy6';
 
-    I = calculateMIP(nd2, iT);
+exportImages(inputFile, outputDir, roi, spotID, frames, ...
+    'redChannelNormRange', [500 1200], 'greenChannelNormRange', [250 2500], ...
+    'nearDist', 50)
 
-    ch2IntRange = [500, 7500];
-    ch3IntRange = [3000, 13000];
+%% trackedData_20220311_polyic_xy7_10to20
+roi = [397 349 642 635];
+spotID = 1;
+frames = 10:20;
 
-    Icrop_red = I(:, :, 2);
-    Icrop_red = Icrop_red(roi(2):roi(4), roi(1):roi(3));
+inputFile = 'D:\Projects\ALMC Tickets\T336-Corbet-SpotDetection\results\20220525\tracks\trackedData_20220311_polyic_xy7_10to20.mat';
+outputDir = 'D:\Projects\ALMC Tickets\T336-Corbet-SpotDetection\results\20220525\20220311_polyic_xy7_10to20';
 
-    Icrop_green = I(:, :, 3);
-    Icrop_green = Icrop_green(roi(2):roi(4), roi(1):roi(3));
+exportImages(inputFile, outputDir, roi, spotID, frames, ...
+    'redChannelNormRange', [500 1200], 'greenChannelNormRange', [500 1500], ...
+    'nearDist', 50)
 
-    ch2Norm = double(Icrop_red);
-    ch2Norm = (ch2Norm - (min(ch2IntRange)))/(max(ch2IntRange) - min(ch2IntRange));
-    ch2Norm(ch2Norm > 1) = 1;
-    ch2Norm(ch2Norm < 0) = 0;
+%% trackedData_20220311_polyic_xy7_28to38
+roi = [210 350 385 570];
+spotID = 1;
+frames = 28:38;
 
-    ch3Norm = double(Icrop_green);
-    ch3Norm = (ch3Norm - (min(ch3IntRange)))/(max(ch3IntRange) - min(ch3IntRange));
-    ch3Norm(ch3Norm > 1) = 1;
-    ch3Norm(ch3Norm < 0) = 0;
+inputFile = 'D:\Projects\ALMC Tickets\T336-Corbet-SpotDetection\results\20220525\tracks\trackedData_20220311_polyic_xy7_28to38.mat';
+outputDir = 'D:\Projects\ALMC Tickets\T336-Corbet-SpotDetection\results\20220525\20220311_polyic_xy7_28to38';
 
-    Ired = ch2Norm;
-    Igreen = ch3Norm;
-    Iblue = ch2Norm;
-
-    Irgb = cat(3, Ired, Igreen, Iblue);
-
-    %Plot markers to show the position of the spots
-    idx = find(currSpotData.Frames == iT);
-
-    figure(1);
-    set(gcf, 'Position', [1960 72 1022 762])
-    imshow(Irgb, [])
-    hold on
-    if ~isempty(idx)
-
-        plot(currSpotData.Centroid(idx, 1) - roi(1), currSpotData.Centroid(idx, 2) - roi(2), 'yo', ...
-            'LineWidth', 1)
-
-        if frameData(iT).NumGreenSpots >= 1
-
-            greenPos = cat(1, frameData(iT).spotDataGreen.Centroid);
-
-            %Filter spots outside of ROI
-            greenPos(greenPos(:, 1) < roi(1) | ...
-                greenPos(:, 1) > roi(3) | ...
-                greenPos(:, 2) < roi(2) | ...
-                greenPos(:, 2) > roi(4), :) = [];
-
-            plot(greenPos(:, 1) - roi(1), greenPos(:, 2) - roi(2), 's', ...
-                'MarkerEdgeColor', [0 90 181]/255, 'LineWidth', 2)
-
-        end
-
-    end
-
-    hold off
-
-    saveas(gcf, fullfile('D:\Projects\ALMC Tickets\T336-Corbet-SpotDetection\results\20220523\',...
-        sprintf('export_spot%.0f_frame%.0f.png', spotID, iT)));
-
-  
-    %Distance to green spot
-    if ~isempty(idx) 
-    distToGreen = sqrt(sum((currSpotData.Centroid(idx, :) - greenPos).^2, 2));
-
-    binEdges = 0:20:200;
-
-    %Make a histogram showing number of spots close to the red spot
-    figure(2);
-    set(gcf, 'Position', [1957 424 668 515])
-    histogram(distToGreen, 'binEdges', binEdges)
-    saveas(gcf, fullfile('D:\Projects\ALMC Tickets\T336-Corbet-SpotDetection\results\20220523\',...
-        sprintf('histogram_spot%.0f_frame%.0f.png', spotID, iT)));
-    end
-
-
-end
+exportImages(inputFile, outputDir, roi, spotID, frames, ...
+    'redChannelNormRange', [500 1200], 'greenChannelNormRange', [250 1500], 'nearDist', 50)
