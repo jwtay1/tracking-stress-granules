@@ -42,10 +42,12 @@ maskFiles = {'20220311_polyic_xy3.tif', '20220426__crop_XY5.tif', ...
     '20220311_polyic_xy7_10to20.tif', '20220311_polyic_xy7_28to38.tif', ...
     '20220311_polyic_xy6.tif'};
 
-greenSpotSensitivity = [300 1500 100 100 100];
-redSpotSensitivity = [750, 750, 500, 750, 500];
+greenSpotSensitivity = [250 4000 280 300 200];
+redSpotSensitivity = [500, 2500, 750, 750, 500];
 
-for iF = 1%:numel(files)
+distToGreen = [100, 100, 50, 50, 50];
+
+for iF = 5%:numel(files)
     
     currFN = fullfile(dataFolder, files{iF});
     currMaskFN = fullfile(maskDir, maskFiles{iF});
@@ -53,7 +55,9 @@ for iF = 1%:numel(files)
     processMovie(currFN, outputDir, currMaskFN,...
         'greenSpotSensitivity', greenSpotSensitivity(iF), ...
         'frames', frames{iF}, ...
-        'redSpotSensitivity', redSpotSensitivity(iF));
+        'redSpotSensitivity', redSpotSensitivity(iF), ...
+        'distThresholdToGreen', distToGreen(iF), ...
+        'padding', 15);
     
 end
 

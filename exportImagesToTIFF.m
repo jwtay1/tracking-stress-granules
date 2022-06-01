@@ -2,7 +2,7 @@
 clearvars
 clc
 
-file = 'D:\Projects\ALMC Tickets\T336-Corbet-SpotDetection\data\crop\20220311_polyic_xy5.nd2';
+file = 'D:\Projects\ALMC Tickets\T336-Corbet-SpotDetection\data\crop\20220426__crop_XY5.nd2';
 outputDir = 'D:\Projects\ALMC Tickets\T336-Corbet-SpotDetection\results\publication';
 frames = 47:57;
 

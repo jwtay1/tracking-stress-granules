@@ -23,11 +23,11 @@ function processMovie(inputFile, outputDir, cellMaskFile, varargin)
 %  See also: exportImages.m
 
 ip = inputParser;
-% addParameter(ip, 'redChannelNormRange', [500 7500]);
-% addParameter(ip, 'greenChannelNormRange', [3000 23000]);
 addParameter(ip, 'greenSpotSensitivity', 200);
 addParameter(ip, 'redSpotSensitivity', 1200);
 addParameter(ip, 'frames', 20:38);
+addParameter(ip, 'distThresholdToGreen', 100);
+addParameter(ip, 'padding', 0);
 parse(ip, varargin{:});
 
 %Spot tracking parameters
@@ -78,25 +78,20 @@ for kk = 1:numel(ip.Results.frames)
 
 end
 
+totalCellMask = bwareaopen(totalCellMask, 100);
+
 %Find the bounding box of the cell mask
-topRow = find(any(totalCellMask, 2), 1, 'first');
-botRow = find(any(totalCellMask, 2), 1, 'last');
+topRow = find(any(totalCellMask, 2), 1, 'first') - ip.Results.padding;
+botRow = find(any(totalCellMask, 2), 1, 'last') + ip.Results.padding;
 
-leftCol = find(any(totalCellMask, 1), 1, 'first');
-rightCol = find(any(totalCellMask, 1), 1, 'last');
+leftCol = find(any(totalCellMask, 1), 1, 'first') - ip.Results.padding;
+rightCol = find(any(totalCellMask, 1), 1, 'last') + ip.Results.padding;
 
-%Determine intensity range
-% maxRedInt = 0.8 * double(max(cellfun(@(x) max(x(:, :, 1), [], 'all'), mipImages.mip)));
-% minRedInt = 0.8 * double(min(cellfun(@(x) min(x(:, :, 1), [], 'all'), mipImages.mip)));
-% 
-% maxGreenInt = 0.8 * double(max(cellfun(@(x) max(x(:, :, 2), [], 'all'), mipImages.mip)));
-% minGreenInt = 0.8 * double(min(cellfun(@(x) min(x(:, :, 2), [], 'all'), mipImages.mip)));
+maxRedInt = double(max(cellfun(@(x) prctile(x(:, :, chRed), 99.5, 'all'), mipImages.mip)));
+minRedInt = double(min(cellfun(@(x) prctile(x(:, :, chRed), 1, 'all'), mipImages.mip)));
 
-maxRedInt = double(max(cellfun(@(x) prctile(x(:, :, 1), 99, 'all'), mipImages.mip)));
-minRedInt = double(min(cellfun(@(x) prctile(x(:, :, 1), 1, 'all'), mipImages.mip)));
-
-maxGreenInt = double(max(cellfun(@(x) prctile(x(:, :, 2), 99, 'all'), mipImages.mip)));
-minGreenInt = double(min(cellfun(@(x) prctile(x(:, :, 2), 1, 'all'), mipImages.mip)));
+maxGreenInt = double(max(cellfun(@(x) prctile(x(:, :, chGreen), 99.9, 'all'), mipImages.mip)));
+minGreenInt = double(min(cellfun(@(x) prctile(x(:, :, chGreen), 1, 'all'), mipImages.mip)));
 
 %Make output directory to export images
 [~, outputImageDir] = fileparts(inputFile);
@@ -117,13 +112,13 @@ for iT = ip.Results.frames
     cellMask = cellMask > 0;
 
     %Detect spots in each channel
-    spotMask_Red = detectSpotsByExtendedMax(mip(:, :, chRed), ip.Results.redSpotSensitivity, cellMask, 2);
-    spotMask_Green = detectSpotsByExtendedMax(mip(:, :, chGreen), ip.Results.greenSpotSensitivity, cellMask, 1.7);
+    spotMask_Red = detectSpots(mip(:, :, chRed), ip.Results.redSpotSensitivity);
+    spotMask_Green = detectSpots(mip(:, :, chGreen), ip.Results.greenSpotSensitivity);
     %showoverlay(mip(:, :, chGreen), spotMask_Green, 'Opacity', 10)
-    
+
     spotMask_Red(~cellMask) = false;
     spotMask_Green(~cellMask) = false;
-    
+
     %Get data from red spots
     dataSpot_Red = regionprops(spotMask_Red, mip(:, :, chRed), 'Centroid', 'MeanIntensity');
     dataSpot_Green = regionprops(spotMask_Green, mip(:, :, chGreen), 'Centroid', 'MeanIntensity');
@@ -145,7 +140,7 @@ for iT = ip.Results.frames
 
                 dataSpot_Red(iSR).distToGreen = ...
                     sqrt(sum((allPos - dataSpot_Red(iSR).Centroid).^2, 2));
-                
+
             else
 
                 dataSpot_Red(iSR).distToGreen = [NaN];
@@ -166,12 +161,12 @@ for iT = ip.Results.frames
     ch2Norm = double(mip(:, :, chRed));
     ch2Norm = (ch2Norm - (min(ch2IntRange)))/(max(ch2IntRange) - min(ch2IntRange));
     ch2Norm(ch2Norm > 1) = 1;
-    ch2Norm(ch2Norm < 0) = 0;    
+    ch2Norm(ch2Norm < 0) = 0;
 
     ch3Norm = double(mip(:, :, chGreen));
     ch3Norm = (ch3Norm - (min(ch3IntRange)))/(max(ch3IntRange) - min(ch3IntRange));
     ch3Norm(ch3Norm > 1) = 1;
-    ch3Norm(ch3Norm < 0) = 0;    
+    ch3Norm(ch3Norm < 0) = 0;
 
     Ired = ch2Norm;
     Igreen = ch3Norm;
@@ -180,8 +175,8 @@ for iT = ip.Results.frames
     Irgb = cat(3, Ired, Igreen, Iblue);
 
     %Overlay masks
-%     Iout = showoverlay(Irgb, spotMask_Red, 'Opacity', 40, 'Color', [1 1 0]);
-%     Iout = showoverlay(Iout, spotMask_Green, 'Opacity', 40, 'Color', [0 1 1]);
+    %     Iout = showoverlay(Irgb, spotMask_Red, 'Opacity', 40, 'Color', [1 1 0]);
+    %     Iout = showoverlay(Iout, spotMask_Green, 'Opacity', 40, 'Color', [0 1 1]);
     Iout = Irgb;
 
     Iout = uint16(Iout * 65535);
@@ -198,11 +193,17 @@ for iT = ip.Results.frames
     for iGS = 1:numel(frameData(iT).spotDataGreen)
         currPos = cat(1, frameData(iT).spotDataGreen(iGS).Centroid);
 
+
+        try
         Iout = insertShape(Iout, 'rectangle', ...
             [currPos(:, 1) - recSize/2, currPos(:, 2) - recSize/2, recSize, recSize], ...
             'LineWidth', 2, 'Color', 'yellow');
+
+        catch
+            keyboard
+        end
     end
-    
+
     %Mark spots
     circSize = 5;
     for iRS = 1:numel(frameData(iT).spotDataRed)
@@ -212,7 +213,7 @@ for iT = ip.Results.frames
             [currPos(:, 1), currPos(:, 2), circSize], ...
             'LineWidth', 2, 'Color', 'cyan');
     end
-    
+
 
     Iout = im2double(Iout);
 
@@ -228,9 +229,13 @@ for iT = ip.Results.frames
     ch2Norm = ch2Norm(topRow:botRow, leftCol:rightCol);
     ch3Norm = ch3Norm(topRow:botRow, leftCol:rightCol);
 
+    ch2Norm = cat(3, ch2Norm, zeros(size(ch2Norm)), ch2Norm);
+
     imwrite(ch2Norm, fullfile(outputDir, outputImageDir, ...
         [outputFN, '_PKR_frame', int2str(iT), '.tif']), ...
         'Compression', 'none')
+
+    ch3Norm = cat(3, zeros(size(ch3Norm)), ch3Norm, zeros(size(ch3Norm)));
 
     imwrite(ch3Norm, fullfile(outputDir, outputImageDir, ...
         [outputFN, '_G3BP1_frame', int2str(iT), '.tif']), ...
@@ -241,6 +246,68 @@ for iT = ip.Results.frames
         [outputFN, '_merged_frame', int2str(iT), '.tif']), ...
         'Compression', 'none')
 
+    %Create a marked image
+    fig = figure;
+    imshow(Irgb)
+    hold on
+    %Mark spots
+    recSize = 10;
+    for iGS = 1:numel(frameData(iT).spotDataGreen)
+        currPos = cat(1, frameData(iT).spotDataGreen(iGS).Centroid);
+
+        plot(currPos(:, 1) - leftCol, currPos(:, 2) - topRow, 'color', [0.9290 0.6940 0.1250], ...
+            'LineWidth', 1, 'marker', 's', 'LineStyle', 'none', 'MarkerSize', 15)
+
+    end
+
+    %Mark spots
+    circSize = 5;
+    if ~isempty(frameData(iT).spotDataRed)
+
+        currPos = cat(1, frameData(iT).spotDataRed(1).Centroid);
+
+        plot(currPos(:, 1) - leftCol, currPos(:, 2) - topRow, 'color', [0.3010 0.7450 0.9330], ...
+            'LineWidth', 1, 'marker', 'o', 'LineStyle', 'none', 'MarkerSize', 15)
+
+        %Mark distance threshold
+        viscircles([currPos(:, 1) - leftCol, currPos(:, 2) - topRow],...
+            ip.Results.distThresholdToGreen, ...
+            'EnhanceVisibility', false, ...
+            'color', [1, 1, 1], ...
+            'LineWidth', 2, 'LineStyle', '--');
+    end
+
+    hold off
+    saveas(fig, fullfile(outputDir, outputImageDir, ...
+        [outputFN, '_merged_frame', int2str(iT), '.svg']))
+
+    close(fig)
+
+
+
+    %Make a histogram showing number of spots close to the red spot
+    if ~isempty(frameData(iT).spotDataRed) && ~isempty(frameData(iT).spotDataGreen)
+
+        redSpotPos = frameData(iT).spotDataRed(1).Centroid;
+        greenSpotPos = cat(1, frameData(iT).spotDataGreen.Centroid);
+
+        distToGreen = sqrt(sum((redSpotPos - greenSpotPos).^2, 2));
+
+        binEdges = 0:10:130;
+
+        fig = figure;
+        set(fig, 'Position', [1957 424 668 515])
+        histogram(distToGreen, 'binEdges', binEdges)
+        xlabel('Distance to dRIF (px)')
+        ylabel('Number of G3BP1 detected')
+        ylim([0 20])
+        xlim([0 130])
+        saveas(gcf, fullfile(outputDir, outputImageDir, ...
+            [outputFN, '_histogram', int2str(iT), '.svg']))
+
+        close(fig)
+
+    end
 
 end
 
